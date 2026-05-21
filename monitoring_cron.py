@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 POOL_PATH = Path(__file__).resolve().parent / "pool" / "transcripts.json"
 COVAL_API_URL = "https://api.coval.dev/v1/conversations:submit"
 
+# Bronstate Auto Insurance demo: 5 monitoring metrics scored on every submitted
+# conversation. Mirrors the dashboard's primary failure-mode beats (dispatch
+# roadside 12s timeout) plus FNOL flow + fraud + holistic success.
+MONITORING_METRIC_IDS = [
+    "XBt7PXBetrV6dT9Cur98Ka",  # Conversation Success
+    "TKpxSZg4W8mvjMEjXEfLNS",  # Pause Anomalies
+    "2K25iAgH2mHHhXZAtdx9Zq",  # Patient Communication During Tool Delay
+    "3EeuoESDinYctA4f7Kecir",  # FNOL Completeness
+    "AHJ4nfC2NuNJNYuCRnkJYi",  # Fraud Detection
+]
+
 
 def main() -> int:
     api_key = os.environ.get("COVAL_API_KEY")
@@ -49,11 +60,15 @@ def main() -> int:
     body = {
         "transcript": transcript,
         "agent_id": agent_id,
+        "metrics": MONITORING_METRIC_IDS,
         "metadata": {"source": "demo-cron", "tier": tier},
         "external_conversation_id": f"demo-{uuid.uuid4()}",
     }
 
-    logger.info(f"submitting monitoring conversation: tier={tier} pool_size={len(pool)}")
+    logger.info(
+        f"submitting monitoring conversation: tier={tier} pool_size={len(pool)} "
+        f"metrics={len(MONITORING_METRIC_IDS)}"
+    )
     try:
         resp = httpx.post(
             COVAL_API_URL,
